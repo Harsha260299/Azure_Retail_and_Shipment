@@ -29,14 +29,18 @@ test('notebook consumes the ADF landing filename and quarantines in Parquet',asy
  assert.ok(notebook.includes('.parquet(output + "/rejected_orders")'));
  assert.ok(notebook.includes('F.lit(landing + "/'+file+'")'));
 });
-test('item JSON is unchanged and validation waits for both ingestion activities',async()=>{
+test('item JSON is unchanged and validation waits for all three ingestion activities',async()=>{
  const p=await json('adf/pipeline.json');
  const items=p.properties.activities.find(a=>a.name==='CopyOrderItems');
  assert.equal(items.typeProperties.source.type,'BinarySource');
  assert.equal(items.typeProperties.sink.type,'BinarySink');
  assert.equal(items.inputs[0].parameters.file,'order_items.json');
  assert.equal(items.outputs[0].parameters.file,'order_items.json');
+ const shipment=p.properties.activities.find(a=>a.name==='CopyShipments');
+ assert.equal(shipment.inputs[0].parameters.file,'shipments.json');
+ assert.equal(shipment.outputs[0].parameters.file,'shipments.json');
+ assert.equal(shipment.typeProperties.source.type,'BinarySource');
  const validation=p.properties.activities.find(a=>a.name==='ValidateAndReport');
- assert.deepEqual(validation.dependsOn.map(d=>d.activity).sort(),['CopyOrderItems','CopyOrders']);
+ assert.deepEqual(validation.dependsOn.map(d=>d.activity).sort(),['CopyOrderItems','CopyOrders','CopyShipments']);
  assert.ok(validation.dependsOn.every(d=>d.dependencyConditions.includes('Succeeded')));
 });
