@@ -1,4 +1,4 @@
-# ASDA Retail Data Validation Pipeline
+# Retail Data Validation Pipeline
 
 This project is a replica of my ASDA retail data engineering work, recreated with synthetic sample data for portfolio demonstration. It covers ingestion, validation, rejected-record handling and reporting without company data, credentials or internal systems.
 
