@@ -225,6 +225,69 @@
         ]
       },
       {
+        "name": "CopyShipments",
+        "type": "Copy",
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "BinarySource",
+            "storeSettings": {
+              "type": "AmazonS3ReadSettings",
+              "recursive": false
+            },
+            "formatSettings": {
+              "type": "BinaryReadSettings"
+            }
+          },
+          "sink": {
+            "type": "BinarySink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings"
+            }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_s3_binary",
+            "type": "DatasetReference",
+            "parameters": {
+              "bucket": {
+                "value": "@pipeline().parameters.s3_bucket",
+                "type": "Expression"
+              },
+              "folder": {
+                "value": "@pipeline().parameters.s3_prefix",
+                "type": "Expression"
+              },
+              "file": "shipments.json"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_adls_binary",
+            "type": "DatasetReference",
+            "parameters": {
+              "container": {
+                "value": "@pipeline().parameters.adls_container",
+                "type": "Expression"
+              },
+              "folder": {
+                "value": "@concat(pipeline().parameters.landing_folder, '/', pipeline().RunId)",
+                "type": "Expression"
+              },
+              "file": "shipments.json"
+            }
+          }
+        ]
+      },
+      {
         "name": "ValidateAndReport",
         "type": "DatabricksNotebook",
         "dependsOn": [
@@ -236,6 +299,12 @@
           },
           {
             "activity": "CopyOrderItems",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "CopyShipments",
             "dependencyConditions": [
               "Succeeded"
             ]
