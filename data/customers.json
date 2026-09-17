@@ -1,0 +1,17 @@
+[
+  {
+    "customer_id": "C001",
+    "customer_label": "Sample customer 001",
+    "region": "Leeds"
+  },
+  {
+    "customer_id": "C002",
+    "customer_label": "Sample customer 002",
+    "region": "Manchester"
+  },
+  {
+    "customer_id": "C003",
+    "customer_label": "Sample customer 003",
+    "region": "Bristol"
+  }
+]
