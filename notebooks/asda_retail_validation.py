@@ -37,8 +37,7 @@ jdbc_properties = {
 # COMMAND ----------
 orders = (spark.read.schema(
     "order_id STRING, order_date STRING, customer_id STRING, order_status STRING, store_id STRING"
-).option("header", True).option("mode", "FAILFAST").option("enforceSchema", False)
-    .csv(landing + "/orders.csv"))
+).parquet(landing + "/orders.parquet"))
 for column in ["order_id", "order_date", "customer_id", "order_status"]:
     orders = orders.withColumn(column, F.trim(F.coalesce(F.col(column), F.lit(""))))
 orders = orders.withColumn("order_status", F.upper("order_status")).cache()
@@ -84,7 +83,7 @@ staged = (staged.withColumn("rejection_reason",
      .when(F.col("_known_customer").isNull(), F.lit("UNKNOWN_CUSTOMER")))
     .drop("_id_count", "_known_status", "_known_customer")
     .withColumn("pipeline_run_id", F.lit(cfg["run_id"]))
-    .withColumn("source_file", F.lit(landing + "/orders.csv"))
+    .withColumn("source_file", F.lit(landing + "/orders.parquet"))
     .withColumn("processed_at", F.current_timestamp()).cache())
 rejected = staged.filter(F.col("rejection_reason").isNotNull())
 accepted = staged.filter(F.col("rejection_reason").isNull()).drop("rejection_reason")
@@ -108,7 +107,7 @@ if input_count != accepted_count + rejected_count:
 
 # COMMAND ----------
 # Persist investigation evidence first; preserve raw source files.
-rejected.write.mode("overwrite").json(output + "/rejected_orders")
+rejected.write.mode("overwrite").option("compression", "snappy").parquet(output + "/rejected_orders")
 # Dedicated DEMO snapshot only. This multi-partition JDBC refresh is not atomic.
 (report.write.option("truncate", "true").jdbc(
     jdbc_url, "dbo.sales_reporting", mode="overwrite", properties=jdbc_properties))
