@@ -1,0 +1,66 @@
+{
+  "name": "ds_s3_orders_csv",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_s3",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "bucket": {
+        "type": "String"
+      },
+      "folder": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    },
+    "type": "DelimitedText",
+    "typeProperties": {
+      "location": {
+        "type": "AmazonS3Location",
+        "bucketName": {
+          "value": "@dataset().bucket",
+          "type": "Expression"
+        },
+        "folderPath": {
+          "value": "@dataset().folder",
+          "type": "Expression"
+        },
+        "fileName": {
+          "value": "@dataset().file",
+          "type": "Expression"
+        }
+      },
+      "columnDelimiter": ",",
+      "escapeChar": "\\",
+      "quoteChar": "\"",
+      "firstRowAsHeader": true,
+      "nullValue": "",
+      "encodingName": "UTF-8"
+    },
+    "schema": [
+      {
+        "name": "order_id",
+        "type": "String"
+      },
+      {
+        "name": "order_date",
+        "type": "String"
+      },
+      {
+        "name": "customer_id",
+        "type": "String"
+      },
+      {
+        "name": "order_status",
+        "type": "String"
+      },
+      {
+        "name": "store_id",
+        "type": "String"
+      }
+    ]
+  }
+}
