@@ -5,19 +5,19 @@ This project is a replica of my ASDA retail data engineering work, recreated wit
 ASDA is the business context. This is an independent portfolio demonstration, not an official ASDA system or a claim about its production architecture.
 
 ## Architecture
-![ASDA retail validation architecture: S3 to ADF to ADLS landing to Databricks, branching to Azure SQL and rejected-data storage](https://raw.githubusercontent.com/Harsha260299/Azure_retail_mirror_pro/819cb7bf0ce2283781ea250c87a302fabd2830c4/docs/architecture.svg)
+![ASDA retail validation architecture: S3 to ADF to ADLS landing to Databricks, branching to Azure SQL and rejected-data storage](https://raw.githubusercontent.com/Harsha260299/Azure_retail_mirror_pro/edf65237f49c21d4158f99d8645e2e4a5e0c2652/docs/architecture.svg)
 
 [Open the full-size architecture diagram](docs/architecture.svg)
 
 The main flow is left to right. Approved records go to Azure SQL; rejected records go to a separate ADLS zone. Credential management, reference checks, metadata and rerun controls sit below the flow.
 
 ### File formats
-| Stage | Orders | Order items |
+| Stage | Orders | Order items and shipments |
 |---|---|---|
 | Amazon S3 source | CSV | JSON |
 | ADF ingestion | Parse CSV and write Snappy Parquet | Copy JSON unchanged |
-| ADLS landing / Databricks input | orders.parquet | order_items.json |
-| Rejected orders | Snappy Parquet with rejection metadata | Raw items retained |
+| ADLS landing / Databricks input | orders.parquet | order_items.json and shipments.json |
+| Rejected records | Orders: Snappy Parquet | Shipments: Snappy Parquet; raw items retained |
 
 CSV remains only as the incoming source fixture. ADF performs a real format conversion; changing a filename alone does not create Parquet. The Node.js demo tests validation rules against the source fixture and does not execute the cloud conversion.
 
@@ -27,12 +27,35 @@ Node.js 20 or newer is required. No dependencies or cloud credentials are needed
 npm test
 npm run demo
 ```
-Results are written to `output/`: sales_reporting.json, rejected_orders.json and audit.json.
+Results are written to `output/`: sales_reporting.json, rejected_orders.json, shipment_reporting.json, rejected_shipments.json and audit.json.
 
 The fixture has **10 input rows, 4 accepted orders and 6 rejected rows**. Accepted order IDs: 1001, 1005, 1006, 1009. Combined basket value: **GBP 17.50**. This includes approved canceled orders and is not recognised revenue.
 
+## Shipment and consignment data
+The project now includes nine synthetic shipment records: **four accepted consignments and five rejected records**. Order 1001 has two consignments to demonstrate split shipments. Carriers and tracking references are invented; no carrier API or live tracking is used.
+
+| Field | Meaning |
+|---|---|
+| consignment_id | Unique consignment identifier for this snapshot |
+| order_id | Link to the retail order |
+| carrier | Sample carrier name |
+| service_level | STANDARD or NEXT_DAY sample service |
+| tracking_reference | Synthetic tracking reference |
+| shipment_status | CREATED, DISPATCHED, IN_TRANSIT, DELIVERED, DELAYED, RETURNED or CANCELED |
+| dispatched_at | Dispatch time (optional ISO text) |
+| expected_delivery_date | Expected delivery date (optional ISO text) |
+| delivered_at | Actual delivery time (optional ISO text) |
+
+ADF stages shipments.json unchanged alongside order-items JSON and the converted orders.parquet. Databricks validates consignment IDs, required fields, status reference values and order links. It writes accepted rows to `dbo.shipment_reporting` and rejected rows to an ADLS Parquet folder. ADF waits for all three source copies before validation.
+
+Every duplicate consignment ID is rejected. Unknown order IDs and orders that failed validation receive distinct rejection reasons. Reporting stays at **one row per consignment**, separately from sales totals, so split shipments cannot inflate order values. Orders without shipments remain valid. Dates are retained as source text; date chronology and SLA checks are not implemented.
+
+For a new database run `sql/setup.sql` followed by `sql/002_shipments.sql`. For an existing demo database, run only `sql/002_shipments.sql` before the updated pipeline. The two reporting snapshots are refreshed sequentially and are not an atomic transaction; rerun the complete immutable batch after a partial failure.
+
 ## Included assets
-- `data/`: invented grocery orders, newline-delimited item JSON, synthetic customers and statuses.
+- `data/`: invented grocery orders, order items, shipments, customers and order/shipment status references.
+- `src/shipments.mjs`, `tests/shipments.test.mjs`: consignment validation and tests.
+- `sql/002_shipments.sql`: shipment status reference and reporting migration.
 - `notebooks/asda_retail_validation.py`: importable Databricks PySpark source notebook.
 - `sql/setup.sql`: reference data and reporting schema.
 - `adf/pipeline.json` and `adf/datasets/`: ADF authoring templates.
@@ -54,4 +77,4 @@ The cloud notebook refreshes a dedicated demo SQL snapshot using JDBC overwrite/
 This is a newly written implementation with new synthetic data. The reference notebook at commit `07abd8a0cf744af41888c624a404fbccd20aa384` rejects whole files; this version deliberately quarantines individual rows. The reference notebook reads item CSV, whereas this version uses JSON as described in the case study. No upstream screenshots, outputs or datasets are republished.
 
 ## Verification
-All 10 local tests passed: seven validation-rule tests and three pipeline format/dependency contract checks. Azure/Databricks execution has not been verified in a live subscription. Cloud assets require linked services, permissions, secrets and resources described in the deployment guide. No production performance or ASDA operational results are claimed.
+All 16 local tests passed: seven order tests, five shipment tests and four pipeline/schema contract checks. Azure/Databricks execution has not been verified in a live subscription. Cloud assets require linked services, permissions, secrets and resources described in the deployment guide. No production performance or ASDA operational results are claimed.
