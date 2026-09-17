@@ -70,11 +70,5 @@ Reporting has one row per accepted order. Item prices use integer pence and are 
 
 The cloud notebook refreshes a dedicated demo SQL snapshot using JDBC overwrite/truncate. It is not an incremental upsert or an atomic transaction. A failed write may leave partial reporting data; preserve immutable inputs and rerun after correction. Never target a production table. ADF concurrency is 1; do not run the notebook concurrently elsewhere.
 
-## Reference and attribution
-- [Pushpak Vootla: Retail Data Engineering Project](https://github.com/PushpakVootla21/Retail_Data_Engineering_Project)
-- [Retail Databricks Validation Pipeline case study](https://pushpakvootla.cloud/projects/retail-databricks-validation-pipeline#architecture)
-
-This is a newly written implementation with new synthetic data. The reference notebook at commit `07abd8a0cf744af41888c624a404fbccd20aa384` rejects whole files; this version deliberately quarantines individual rows. The reference notebook reads item CSV, whereas this version uses JSON as described in the case study. No upstream screenshots, outputs or datasets are republished.
-
 ## Verification
 All 16 local tests passed: seven order tests, five shipment tests and four pipeline/schema contract checks. Azure/Databricks execution has not been verified in a live subscription. Cloud assets require linked services, permissions, secrets and resources described in the deployment guide. No production performance or ASDA operational results are claimed.
