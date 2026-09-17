@@ -1,0 +1,231 @@
+{
+  "name": "pl_asda_retail_validation",
+  "properties": {
+    "concurrency": 1,
+    "parameters": {
+      "s3_bucket": {
+        "type": "String"
+      },
+      "s3_prefix": {
+        "type": "String",
+        "defaultValue": "asda-demo"
+      },
+      "adls_container": {
+        "type": "String",
+        "defaultValue": "asda-demo"
+      },
+      "landing_folder": {
+        "type": "String",
+        "defaultValue": "landing"
+      },
+      "landing_root": {
+        "type": "String"
+      },
+      "output_root": {
+        "type": "String"
+      },
+      "notebook_path": {
+        "type": "String",
+        "defaultValue": "/Shared/asda_retail_validation"
+      },
+      "sql_server": {
+        "type": "String"
+      },
+      "sql_database": {
+        "type": "String"
+      },
+      "secret_scope": {
+        "type": "String",
+        "defaultValue": "asda-demo"
+      }
+    },
+    "activities": [
+      {
+        "name": "CopyOrders",
+        "type": "Copy",
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "BinarySource",
+            "storeSettings": {
+              "type": "AmazonS3ReadSettings",
+              "recursive": false
+            },
+            "formatSettings": {
+              "type": "BinaryReadSettings"
+            }
+          },
+          "sink": {
+            "type": "BinarySink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings"
+            }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_s3_binary",
+            "type": "DatasetReference",
+            "parameters": {
+              "bucket": {
+                "value": "@pipeline().parameters.s3_bucket",
+                "type": "Expression"
+              },
+              "folder": {
+                "value": "@pipeline().parameters.s3_prefix",
+                "type": "Expression"
+              },
+              "file": "orders.csv"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_adls_binary",
+            "type": "DatasetReference",
+            "parameters": {
+              "container": {
+                "value": "@pipeline().parameters.adls_container",
+                "type": "Expression"
+              },
+              "folder": {
+                "value": "@concat(pipeline().parameters.landing_folder, '/', pipeline().RunId)",
+                "type": "Expression"
+              },
+              "file": "orders.csv"
+            }
+          }
+        ]
+      },
+      {
+        "name": "CopyOrderItems",
+        "type": "Copy",
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "BinarySource",
+            "storeSettings": {
+              "type": "AmazonS3ReadSettings",
+              "recursive": false
+            },
+            "formatSettings": {
+              "type": "BinaryReadSettings"
+            }
+          },
+          "sink": {
+            "type": "BinarySink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings"
+            }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_s3_binary",
+            "type": "DatasetReference",
+            "parameters": {
+              "bucket": {
+                "value": "@pipeline().parameters.s3_bucket",
+                "type": "Expression"
+              },
+              "folder": {
+                "value": "@pipeline().parameters.s3_prefix",
+                "type": "Expression"
+              },
+              "file": "order_items.json"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_adls_binary",
+            "type": "DatasetReference",
+            "parameters": {
+              "container": {
+                "value": "@pipeline().parameters.adls_container",
+                "type": "Expression"
+              },
+              "folder": {
+                "value": "@concat(pipeline().parameters.landing_folder, '/', pipeline().RunId)",
+                "type": "Expression"
+              },
+              "file": "order_items.json"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ValidateAndReport",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "CopyOrders",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "CopyOrderItems",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.02:00:00",
+          "retry": 0,
+          "secureInput": true,
+          "secureOutput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_databricks",
+          "type": "LinkedServiceReference"
+        },
+        "typeProperties": {
+          "notebookPath": {
+            "value": "@pipeline().parameters.notebook_path",
+            "type": "Expression"
+          },
+          "baseParameters": {
+            "landing_root": {
+              "value": "@pipeline().parameters.landing_root",
+              "type": "Expression"
+            },
+            "output_root": {
+              "value": "@pipeline().parameters.output_root",
+              "type": "Expression"
+            },
+            "sql_server": {
+              "value": "@pipeline().parameters.sql_server",
+              "type": "Expression"
+            },
+            "sql_database": {
+              "value": "@pipeline().parameters.sql_database",
+              "type": "Expression"
+            },
+            "secret_scope": {
+              "value": "@pipeline().parameters.secret_scope",
+              "type": "Expression"
+            },
+            "run_id": {
+              "value": "@pipeline().RunId",
+              "type": "Expression"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
