@@ -1,3 +1,4 @@
+-- After this script, also run sql/002_shipments.sql to create shipment reference/reporting tables.
 -- Run in a dedicated, empty demo Azure SQL database.
 -- Synthetic identifiers only; no customer names, contact data or passwords.
 CREATE TABLE dbo.valid_order_status (
