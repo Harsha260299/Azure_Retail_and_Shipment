@@ -1,0 +1,7 @@
+[
+  "PENDING",
+  "PROCESSING",
+  "COMPLETE",
+  "CANCELED",
+  "ON_HOLD"
+]
