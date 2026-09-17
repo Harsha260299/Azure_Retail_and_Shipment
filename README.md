@@ -5,9 +5,9 @@ This project is a replica of my ASDA retail data engineering work, recreated wit
 ASDA is the business context. This is an independent portfolio demonstration, not an official ASDA system or a claim about its production architecture.
 
 ## Architecture
-![ASDA retail validation architecture: S3 to ADF to ADLS landing to Databricks, branching to Azure SQL and rejected-data storage](docs/architecture.svg?v=2)
+![ASDA retail validation architecture: S3 to ADF to ADLS landing to Databricks, branching to Azure SQL and rejected-data storage](https://raw.githubusercontent.com/Harsha260299/Azure_retail_mirror_pro/819cb7bf0ce2283781ea250c87a302fabd2830c4/docs/architecture.svg)
 
-[Open the full-size architecture diagram](docs/architecture.svg?v=2)
+[Open the full-size architecture diagram](docs/architecture.svg)
 
 The main flow is left to right. Approved records go to Azure SQL; rejected records go to a separate ADLS zone. Credential management, reference checks, metadata and rerun controls sit below the flow.
 
