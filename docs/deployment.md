@@ -5,9 +5,9 @@ These are ADF authoring templates and an importable Databricks notebook, not a p
 ## Configure the demo
 1. Create a dedicated Azure resource group, ADLS Gen2 account/container, Azure SQL database, Key Vault, Databricks workspace/compute and Data Factory, plus an S3 bucket. Use a supported Databricks Runtime with the SQL Server JDBC driver available.
 2. Run sql/setup.sql once in the empty demo database. It seeds customers and status values matching data/.
-3. Upload data/orders.csv and data/order_items.json to S3 under asda-demo/. JSON is newline-delimited, one item per line.
+3. Upload data/orders.csv and data/order_items.json to S3 under asda-demo/. CSV is the source contract, not the lake format. ADF parses orders.csv and writes orders.parquet with Snappy compression in ADLS. Items remain newline-delimited JSON and are copied unchanged.
 4. Configure ADF linked services named ls_s3, ls_adls and ls_databricks. Use Key Vault secret references for required S3/Databricks credentials and prefer managed identity for ADLS. These services are environment-specific and are not provisioned by the templates.
-5. Import both JSON files under adf/datasets/, then adf/pipeline.json. Validate the linked services before publishing. These are ADF authoring assets, not a complete ARM deployment.
+5. Import all four JSON files under adf/datasets/, then adf/pipeline.json. Validate the linked services before publishing. These are ADF authoring assets, not a complete ARM deployment.
 6. Import notebooks/asda_retail_validation.py as a Python source notebook at /Shared/asda_retail_validation.
 7. Configure Databricks ADLS access using an approved storage identity/external location. Configure a Key Vault-backed secret scope named asda-demo with sql-user and sql-password. Grant SELECT on reference tables and the permissions needed to refresh the dedicated reporting table. Never commit secret values.
 8. Restrict network/firewall access to the services that require it and verify connectivity from ADF and Databricks compute.
@@ -31,12 +31,19 @@ Replace all placeholders. landing_root must point to the exact account, containe
 ## Verify a run
 Trigger one pipeline run. Both copy activities must succeed before ValidateAndReport starts.
 - SQL sales_reporting: four rows (1001, 1005, 1006, 1009); SUM(total_pence) = 1750.
-- ADLS processed/RUN_ID/rejected_orders: six rows with reason codes and audit columns.
+- ADLS processed/RUN_ID/rejected_orders: Parquet part files with six rows, reason codes and audit columns.
 - ADLS processed/RUN_ID/audit: JSON text with ten input, four accepted and six rejected orders.
-- Raw files remain under landing/RUN_ID.
+- ADLS landing/RUN_ID contains orders.parquet and order_items.json. The original CSV remains in S3; it is not copied unchanged to ADLS. Preserve/version the S3 input for exact source replay.
 - ADF notebook output contains the same audit summary.
 
 Invalid item IDs, duplicate items, nonpositive quantities, negative prices, orphan items and accepted orders without items fail the batch. Rejected orders are preserved at row level; their items remain in raw storage. Required-date validation checks presence, not calendar semantics. Date format, store references and product catalogue validation are extensions.
+
+## Parquet contract
+The CopyOrders activity uses DelimitedTextSource and ParquetSink, with explicit string mappings for order_id, order_date, customer_id, order_status and store_id. Keeping identifiers as strings preserves their text representation and lets the validation stage handle blanks. The landing dataset uses Snappy compression. Do not rename a CSV file to .parquet: ADF must serialize the records into Parquet. CopyOrderItems continues to use BinarySource/BinarySink for JSON.
+
+The notebook reads landing/RUN_ID/orders.parquet and records that path in source_file. Rejected orders are written as a Parquet directory; audit remains JSON text. The Node demo continues to read the CSV fixture and tests validation rules only. It does not test ADF execution or Parquet serialization. Validate both in a demo Azure run before deployment.
+
+After migration, run the updated pipeline to create a new landing batch. Existing landing folders containing orders.csv are not compatible with the new notebook.
 
 ## Reruns and failure recovery
 Reporting is a full batch snapshot across all approved statuses, including canceled orders. It is not recognised revenue. ADF pipeline concurrency is 1; do not execute the notebook concurrently through another route.
@@ -46,6 +53,8 @@ The notebook uses JDBC overwrite with truncate against a dedicated demo table. R
 Each new ADF run gets its own landing/quarantine directory. Re-executing the notebook with the same run ID replaces that run's quarantine/audit output and the SQL snapshot. Never target a production reporting table. Production extensions should include transactional SQL staging/promotion, business-key upserts, immutable run manifests and concurrency controls.
 
 ## Official references
+- [ADF Parquet format and sink settings](https://learn.microsoft.com/en-us/azure/data-factory/format-parquet)
+- [ADF delimited-text format](https://learn.microsoft.com/en-us/azure/data-factory/format-delimited-text)
 - [ADF Amazon S3 connector](https://learn.microsoft.com/en-us/azure/data-factory/connector-amazon-simple-storage-service)
 - [ADF Databricks notebook activity](https://learn.microsoft.com/en-us/azure/data-factory/transform-data-databricks-notebook)
 - [ADF ADLS Gen2 connector](https://learn.microsoft.com/en-us/azure/data-factory/connector-azure-data-lake-storage)
