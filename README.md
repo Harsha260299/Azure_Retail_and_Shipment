@@ -5,18 +5,21 @@ This project is a replica of my ASDA retail data engineering work, recreated wit
 ASDA is the business context. This is an independent portfolio demonstration, not an official ASDA system or a claim about its production architecture.
 
 ## Architecture
-```mermaid
-flowchart LR
-  S3[Amazon S3: orders CSV and items JSON] --> ADF[Azure Data Factory]
-  ADF --> RAW[ADLS Gen2 landing]
-  ADF --> DBX[Databricks PySpark validation]
-  RAW --> DBX
-  REF[Azure SQL: customers and statuses] --> DBX
-  KV[Azure Key Vault] -. secrets .-> ADF
-  KV -. secrets .-> DBX
-  DBX --> SQL[Azure SQL sales_reporting]
-  DBX --> BAD[ADLS rejected orders and audit]
-```
+![ASDA retail validation architecture: S3 to ADF to ADLS landing to Databricks, branching to Azure SQL and rejected-data storage](docs/architecture.svg)
+
+[Open the full-size architecture diagram](docs/architecture.svg)
+
+The main flow is left to right. Approved records go to Azure SQL; rejected records go to a separate ADLS zone. Credential management, reference checks, metadata and rerun controls sit below the flow.
+
+### File formats
+| Stage | Orders | Order items |
+|---|---|---|
+| Amazon S3 source | CSV | JSON |
+| ADF ingestion | Parse CSV and write Snappy Parquet | Copy JSON unchanged |
+| ADLS landing / Databricks input | orders.parquet | order_items.json |
+| Rejected orders | Snappy Parquet with rejection metadata | Raw items retained |
+
+CSV remains only as the incoming source fixture. ADF performs a real format conversion; changing a filename alone does not create Parquet. The Node.js demo tests validation rules against the source fixture and does not execute the cloud conversion.
 
 ## Run locally
 Node.js 20 or newer is required. No dependencies or cloud credentials are needed.
