@@ -44,3 +44,13 @@ test('item JSON is unchanged and validation waits for all three ingestion activi
  assert.deepEqual(validation.dependsOn.map(d=>d.activity).sort(),['CopyOrderItems','CopyOrders','CopyShipments']);
  assert.ok(validation.dependsOn.every(d=>d.dependencyConditions.includes('Succeeded')));
 });
+
+test('shipment fields and reference values match SQL and notebook contracts',async()=>{
+ const sql=await read('sql/002_shipments.sql'), notebook=await read('notebooks/asda_retail_validation.py');
+ const fields=['consignment_id','order_id','carrier','service_level','tracking_reference','shipment_status','dispatched_at','expected_delivery_date','delivered_at'];
+ for (const field of fields) {assert.ok(sql.includes(field+' varchar'));assert.ok(notebook.includes('"'+field+'"'));}
+ const statuses=await json('data/valid_shipment_status.json');
+ for(const status of statuses) assert.ok(sql.includes("('"+status+"')"));
+ assert.ok(notebook.includes('"dbo.shipment_reporting"'));
+ assert.ok(notebook.includes('.parquet(output + "/rejected_shipments")'));
+});
