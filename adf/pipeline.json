@@ -52,25 +52,83 @@
         },
         "typeProperties": {
           "source": {
-            "type": "BinarySource",
+            "type": "DelimitedTextSource",
             "storeSettings": {
               "type": "AmazonS3ReadSettings",
               "recursive": false
             },
             "formatSettings": {
-              "type": "BinaryReadSettings"
+              "type": "DelimitedTextReadSettings"
             }
           },
           "sink": {
-            "type": "BinarySink",
+            "type": "ParquetSink",
             "storeSettings": {
               "type": "AzureBlobFSWriteSettings"
+            },
+            "formatSettings": {
+              "type": "ParquetWriteSettings"
             }
+          },
+          "translator": {
+            "type": "TabularTranslator",
+            "mappings": [
+              {
+                "source": {
+                  "name": "order_id",
+                  "type": "String"
+                },
+                "sink": {
+                  "name": "order_id",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "name": "order_date",
+                  "type": "String"
+                },
+                "sink": {
+                  "name": "order_date",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "name": "customer_id",
+                  "type": "String"
+                },
+                "sink": {
+                  "name": "customer_id",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "name": "order_status",
+                  "type": "String"
+                },
+                "sink": {
+                  "name": "order_status",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "name": "store_id",
+                  "type": "String"
+                },
+                "sink": {
+                  "name": "store_id",
+                  "type": "String"
+                }
+              }
+            ]
           }
         },
         "inputs": [
           {
-            "referenceName": "ds_s3_binary",
+            "referenceName": "ds_s3_orders_csv",
             "type": "DatasetReference",
             "parameters": {
               "bucket": {
@@ -87,7 +145,7 @@
         ],
         "outputs": [
           {
-            "referenceName": "ds_adls_binary",
+            "referenceName": "ds_adls_orders_parquet",
             "type": "DatasetReference",
             "parameters": {
               "container": {
@@ -98,7 +156,7 @@
                 "value": "@concat(pipeline().parameters.landing_folder, '/', pipeline().RunId)",
                 "type": "Expression"
               },
-              "file": "orders.csv"
+              "file": "orders.parquet"
             }
           }
         ]
