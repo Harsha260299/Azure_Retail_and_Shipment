@@ -5,9 +5,9 @@ This project is a replica of my ASDA retail data engineering work, recreated wit
 ASDA is the business context. This is an independent portfolio demonstration, not an official ASDA system or a claim about its production architecture.
 
 ## Architecture
-![ASDA retail validation architecture: S3 to ADF to ADLS landing to Databricks, branching to Azure SQL and rejected-data storage](docs/architecture.svg)
+![ASDA retail validation architecture: S3 to ADF to ADLS landing to Databricks, branching to Azure SQL and rejected-data storage](docs/architecture.svg?v=2)
 
-[Open the full-size architecture diagram](docs/architecture.svg)
+[Open the full-size architecture diagram](docs/architecture.svg?v=2)
 
 The main flow is left to right. Approved records go to Azure SQL; rejected records go to a separate ADLS zone. Credential management, reference checks, metadata and rerun controls sit below the flow.
 
@@ -37,6 +37,7 @@ The fixture has **10 input rows, 4 accepted orders and 6 rejected rows**. Accept
 - `sql/setup.sql`: reference data and reporting schema.
 - `adf/pipeline.json` and `adf/datasets/`: ADF authoring templates.
 - `src/validation.mjs`, `scripts/demo.mjs`, `tests/validation.test.mjs`: local rule mirror, runner and seven tests.
+- `tests/pipeline-contract.test.mjs`: CSV-to-Parquet mappings, notebook path alignment and ingestion dependencies.
 - `docs/deployment.md`: configuration, verification and recovery guide.
 
 ## Validation and reporting
@@ -53,4 +54,4 @@ The cloud notebook refreshes a dedicated demo SQL snapshot using JDBC overwrite/
 This is a newly written implementation with new synthetic data. The reference notebook at commit `07abd8a0cf744af41888c624a404fbccd20aa384` rejects whole files; this version deliberately quarantines individual rows. The reference notebook reads item CSV, whereas this version uses JSON as described in the case study. No upstream screenshots, outputs or datasets are republished.
 
 ## Verification
-All seven local rule tests passed. Azure/Databricks execution has not been verified in a live subscription. Cloud assets require linked services, permissions, secrets and resources described in the deployment guide. No production performance or ASDA operational results are claimed.
+All 10 local tests passed: seven validation-rule tests and three pipeline format/dependency contract checks. Azure/Databricks execution has not been verified in a live subscription. Cloud assets require linked services, permissions, secrets and resources described in the deployment guide. No production performance or ASDA operational results are claimed.
