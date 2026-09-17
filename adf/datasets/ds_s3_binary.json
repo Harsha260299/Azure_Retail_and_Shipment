@@ -1,0 +1,38 @@
+{
+  "name": "ds_s3_binary",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_s3",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "bucket": {
+        "type": "String"
+      },
+      "folder": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    },
+    "type": "Binary",
+    "typeProperties": {
+      "location": {
+        "type": "AmazonS3Location",
+        "bucketName": {
+          "value": "@dataset().bucket",
+          "type": "Expression"
+        },
+        "folderPath": {
+          "value": "@dataset().folder",
+          "type": "Expression"
+        },
+        "fileName": {
+          "value": "@dataset().file",
+          "type": "Expression"
+        }
+      }
+    }
+  }
+}
