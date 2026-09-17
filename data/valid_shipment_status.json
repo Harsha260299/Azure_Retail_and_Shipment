@@ -1,0 +1,9 @@
+[
+  "CREATED",
+  "DISPATCHED",
+  "IN_TRANSIT",
+  "DELIVERED",
+  "DELAYED",
+  "RETURNED",
+  "CANCELED"
+]
